@@ -8,6 +8,7 @@ class Driver(db.Model):
     work_start_time = db.Column(db.Time, nullable=False)
     work_end_time = db.Column(db.Time, nullable=False)
     location = db.Column(db.String(100), nullable=False)
+    city = db.Column(db.String(100), nullable=False)
 
     assignments = db.relationship('Assignment', back_populates='driver')
 

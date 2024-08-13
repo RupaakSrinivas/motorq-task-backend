@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db
 from app.models.vehicle import Vehicle
 from app.models.driver import Driver
+from app.models.vehicle_driver import Assignment
 
 bp = Blueprint('vehicles', __name__)
 
@@ -14,6 +15,7 @@ def show_vehicles():
     plate_number = request.args.get('plate_number')
 
     vehicles = Vehicle.query
+    assignment_request = Assignment.query
 
     if make:
         vehicles = vehicles.filter(Vehicle.make.ilike(f'%{make}%'))

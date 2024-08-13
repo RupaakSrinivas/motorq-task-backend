@@ -18,7 +18,6 @@ def create_assignment_request():
     end_time = data['end_time']
     driver_ids = data['driver_ids']
 
-    # Check for conflicts in existing assignments
     assignment_conflicts = Assignment.query.filter(
         Assignment.vehicle_id == vehicle_id,
         Assignment.start_time < end_time,
@@ -33,19 +32,6 @@ def create_assignment_request():
     
     if Driver.query.filter(Driver.id.in_(driver_ids)).count() != len(driver_ids):
         return jsonify({'status': 'error', 'message': 'One or more drivers not found'}), 404
-    
-
-
-    # # Check for conflicts in pending assignment requests
-    # request_conflicts = AssignmentRequest.query.filter(
-    #     AssignmentRequest.vehicle_id == vehicle_id,
-    #     AssignmentRequest.status == 'pending',
-    #     AssignmentRequest.start_time < end_time,
-    #     AssignmentRequest.end_time > start_time
-    # ).first()
-
-    # if request_conflicts:
-    #     return jsonify({'message': 'There is already a pending request for this vehicle during this time period'}), 400
 
     new_request = AssignmentRequest(vehicle_id=vehicle_id, start_time=start_time, end_time=end_time)
     db.session.add(new_request)
@@ -53,7 +39,6 @@ def create_assignment_request():
 
     request_id = new_request.id
 
-    #for each driverId in driver_ids, create a new mapping
     for driver_id in driver_ids:
         new_mapping = MappingTable(driver_id=driver_id, request_id=request_id)
         db.session.add(new_mapping)
@@ -71,13 +56,10 @@ def get_assignment_requests():
     if not driver_id:
         return jsonify({'status': 'error', 'message': 'Driver ID is required'}), 400
 
-    #check if driver is present in driver table
-
     if Driver.query.get(driver_id) is None:
         return jsonify({'status': 'error', 'message': 'No driver found with this id'}), 404
 
     requests = AssignmentRequest.query
-    mapping = MappingTable.query.filter(MappingTable.driver_id == driver_id).all()
 
     if driver_id:
         requests = requests.join(MappingTable, AssignmentRequest.id == MappingTable.request_id).filter(MappingTable.driver_id == driver_id)
@@ -105,21 +87,17 @@ def accept_assignment_request():
     if not assignment_request:
         return jsonify({'status': 'error', 'message': 'No assignment request found with this id'}), 404
     
-    #check if the driver is mapped to the request
-
     mapping = MappingTable.query.filter(MappingTable.request_id == request_id, MappingTable.driver_id == driver_id).first()
 
     if not mapping:
         return jsonify({'status': 'error', 'message': 'Unauthourized use'}), 400
 
-    # Check if driver is not clashing with assignment timings
     assignment_conflicts = Assignment.query.filter(
         Assignment.driver_id == driver_id,
         Assignment.start_time < assignment_request.end_time,
         Assignment.end_time > assignment_request.start_time
     ).first()
 
-    # check if the vehicle is clashing with assignment timings
     vehicle_assignment_conflicts = Assignment.query.filter(
         Assignment.vehicle_id == assignment_request.vehicle_id,
         Assignment.start_time < assignment_request.end_time,
@@ -131,8 +109,10 @@ def accept_assignment_request():
     
     if vehicle_assignment_conflicts:
         return jsonify({'status': 'error', 'message': 'Vehicle is already assigned during this time period'}), 400
+    
+    # if driver.work_start_time > assignment_request.start_time.time() or driver.work_end_time < assignment_request.end_time.time():
+    #     return jsonify({'status':'error', 'message': 'Assignment hours outside of driver working hours'}), 400
 
-    # Create new assignment
     new_assignment = Assignment(
         driver_id=driver_id,
         vehicle_id=assignment_request.vehicle_id,
@@ -148,7 +128,6 @@ def accept_assignment_request():
 
     assignment_request.query.filter(AssignmentRequest.id == request_id).delete()
 
-    # Update request status
     db.session.commit()
 
     return jsonify({'status': 'success', 'message': 'Assignment request accepted successfully'}), 200

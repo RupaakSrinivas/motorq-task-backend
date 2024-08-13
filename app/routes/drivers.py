@@ -5,6 +5,9 @@ from app.models.vehicle_driver import Assignment
 from sqlalchemy import func
 from datetime import datetime
 
+import haversine as hs   
+from haversine import Unit
+
 bp = Blueprint('drivers', __name__)
 
 @bp.route('/drivers', methods=['POST'])
@@ -26,7 +29,7 @@ def create_driver():
     if start_time >= end_time:
         return jsonify({'status': 'error', 'message': 'Start time must be before end time'}), 400
 
-    new_driver = Driver(name=data['name'], phone=data['phone'], email=data['email'], location=data['location'], work_start_time=start_time, work_end_time=end_time)
+    new_driver = Driver(name=data['name'], phone=data['phone'], email=data['email'], location=data['location'], work_start_time=start_time, work_end_time=end_time, city=data['city'])
 
     db.session.add(new_driver)
     db.session.commit()
@@ -37,9 +40,9 @@ def search_drivers():
     name = request.args.get('name')
     phone = request.args.get('phone')
     email = request.args.get('email')
+    #13.0435051,79.2404096
 
-    start_time = request.args.get('start_time')
-    end_time = request.args.get('end_time')
+
 
     print(name, phone, email)
 
@@ -62,7 +65,31 @@ def search_drivers():
     
     if phone and not drivers:
         return jsonify({'status': 'success', 'message': 'No driver found with this phone number'}), 200
+    
 
+    location = request.args.get('location')
+    
+    if location:
+        location = location.split(',')
+        lat1 = float(location[0])
+        lon1 = float(location[1])
+        drivers = Driver.query.all()
+        driver_list = []
+    
+        for driver in drivers:
+            driver_location = driver.location.split(',')
+            lat2 = float(driver_location[0])
+            lon2 = float(driver_location[1])
+            distance = hs.haversine((lat1, lon1), (lat2, lon2), unit=Unit.METERS)
+            if distance < 10000:
+                driver_list.append(driver)
+        return jsonify([{
+            'id': driver.id,
+            'name': driver.name,
+            'phone': driver.phone,
+            'email': driver.email
+        } for driver in driver_list]), 200
+    
     return jsonify([{
         'id': driver.id,
         'name': driver.name,
