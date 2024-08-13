@@ -7,40 +7,40 @@ from datetime import datetime
 
 bp = Blueprint('assignments', __name__)
 
-@bp.route('/assignments', methods=['POST'])
-def create_assignment():
-    data = request.json
-    driver_id = data['driver_id']
-    vehicle_id = data['vehicle_id']
-    start_time = data['start_time']
-    end_time = data['end_time']
+# @bp.route('/assignments', methods=['POST'])
+# def create_assignment():
+#     data = request.json
+#     driver_id = data['driver_id']
+#     vehicle_id = data['vehicle_id']
+#     start_time = data['start_time']
+#     end_time = data['end_time']
 
-    driver = Driver.query.get(driver_id);
-    vehicle = Vehicle.query.get(vehicle_id);
+#     driver = Driver.query.get(driver_id);
+#     vehicle = Vehicle.query.get(vehicle_id);
 
-    if Driver.query.get(driver_id) is None:
-        return jsonify({'status': 'error', 'message': 'No driver found with this id'}), 404
+#     if Driver.query.get(driver_id) is None:
+#         return jsonify({'status': 'error', 'message': 'No driver found with this id'}), 404
     
-    if Vehicle.query.get(vehicle_id) is None:
-        return jsonify({'status': 'error', 'message': 'No vehicle found with this id'}), 404
+#     if Vehicle.query.get(vehicle_id) is None:
+#         return jsonify({'status': 'error', 'message': 'No vehicle found with this id'}), 404
 
-    conflicts = Assignment.query.filter(
-        Assignment.vehicle_id == vehicle_id,
-        Assignment.start_time < end_time,
-        Assignment.end_time > start_time
-    ).all()
+#     conflicts = Assignment.query.filter(
+#         Assignment.vehicle_id == vehicle_id,
+#         Assignment.start_time < end_time,
+#         Assignment.end_time > start_time
+#     ).all()
 
-    if driver.work_start_time > datetime.fromisoformat(start_time).time() or driver.work_end_time < datetime.fromisoformat(end_time).time():
-        return jsonify({'status':'error', 'message': 'Assignment hours outside of driver working hours'}), 400
-    if conflicts:
-        return jsonify({'status': 'error', 'message': 'Vehicle or Driver is already assigned during this time period'}), 400
+#     if driver.work_start_time > datetime.fromisoformat(start_time).time() or driver.work_end_time < datetime.fromisoformat(end_time).time():
+#         return jsonify({'status':'error', 'message': 'Assignment hours outside of driver working hours'}), 400
+#     if conflicts:
+#         return jsonify({'status': 'error', 'message': 'Vehicle or Driver is already assigned during this time period'}), 400
 
-    new_assignment = Assignment(driver_id=driver_id, vehicle_id=vehicle_id, 
-                                start_time=start_time, end_time=end_time)
-    db.session.add(new_assignment)
-    db.session.commit()
+#     new_assignment = Assignment(driver_id=driver_id, vehicle_id=vehicle_id, 
+#                                 start_time=start_time, end_time=end_time)
+#     db.session.add(new_assignment)
+#     db.session.commit()
 
-    return jsonify({'status':'success', 'message': 'Assignment created successfully'}), 201
+#     return jsonify({'status':'success', 'message': 'Assignment created successfully'}), 201
 
 
 
